@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавление книги</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .chapter { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Добавление новой книги</h2>
+        <form id="addBookForm">
+            <div class="form-group">
+                <input type="text" class="form-control" id="id" name="id" placeholder="ID книги" required><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="title" name="title" placeholder="Название книги" required><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="author" name="author" placeholder="Автор книги" required><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="lister" name="lister" placeholder="Чтец (необязательно)"><br>
+            </div>
+            <div class="form-group">
+                <input type="url" class="form-control" id="img" name="img" placeholder="Ссылка на изображение обложки" required><br>
+            </div>
+            <div class="form-group">
+                <input type="url" class="form-control" id="img_audio" name="img_audio" placeholder="Ссылка на изображение для аудио" required><br>
+            </div>
+            <div class="form-group">
+                <input type="url" class="form-control" id="txt" name="txt" placeholder="Ссылка на текст книги" required><br>
+            </div>
+            <div class="form-group">
+                <input type="number" class="form-control" id="rating" name="rating" placeholder="Рейтинг" step="0.1" required><br>
+            </div>
+            <div class="form-group">
+                <textarea class="form-control" id="summary" name="summary" placeholder="Описание" required></textarea><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="genre" name="genre" placeholder="Жанры (через запятую)" required><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="folderName" name="folderName" placeholder="Название папки (для аудио глав)" required oninput="updateLinksBasedOnFolderName()"><br>
+            </div>
+            <div id="chapters">
+                <h4>Главы</h4>
+                <!-- Поля для глав будут добавляться здесь -->
+            </div>
+            <button type="button" class="btn btn-secondary mb-3" onclick="addChapter()">Добавить главу</button><br>
+            <button type="submit" class="btn btn-primary">Добавить книгу</button>
+        </form>
+    </div>
+
+    <script>
+        let chapterCount = 0;
+
+        document.getElementById('addBookForm').onsubmit = async function(e) {
+            e.preventDefault();
+            const formData = {
+                id: document.getElementById('id').value,
+                title: document.getElementById('title').value,
+                author: document.getElementById('author').value,
+                lister: document.getElementById('lister').value || null,
+                img: document.getElementById('img').value,
+                img_audio: document.getElementById('img_audio').value,
+                txt: document.getElementById('txt').value,
+                rating: parseFloat(document.getElementById('rating').value),
+                summary: document.getElementById('summary').value,
+                genre: document.getElementById('genre').value.split(','),
+                chapters: Array.from(document.querySelectorAll('.chapter')).map((chapter, index) => ({
+                    title: chapter.querySelector('.chapterTitle').value,
+                    audioFile: chapter.querySelector('.chapterAudio').value,
+                }))
+            };
+
+            try {
+                const response = await fetch('http://localhost:5000/addBook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                if (!response.ok) throw new Error('Ответ сети был не ok.');
+
+                console.log('Книга успешно добавлена:', await response.json());
+                alert('Книга успешно добавлена');
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при добавлении книги');
+            }
+        };
+
+        function updateLinksBasedOnFolderName() {
+            const folderName = document.getElementById('folderName').value;
+            if (folderName) {
+                document.getElementById('img').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}.jpg`;
+                document.getElementById('img_audio').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}_audio.jpg`;
+                document.getElementById('txt').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}.txt`;
+            }
+        }
+
+        function addChapter() {
+            const folderName = document.getElementById('folderName').value;
+            if (!folderName) {
+                alert('Пожалуйста, введите название папки.');
+                return;
+            }
+
+            chapterCount++;
+            const container = document.createElement('div');
+            container.classList.add('chapter', 'form-group');
+            const titleInput = document.createElement('input');
+            titleInput.type = 'text';
+            titleInput.classList.add('form-control', 'chapterTitle');
+            titleInput.value = 'Часть ' + chapterCount;
+            const audioInput = document.createElement('input');
+            audioInput.type = 'url';
+            audioInput.classList.add('form-control', 'chapterAudio');
+            let audioFileNumber = String(chapterCount - 1).padStart(2, '0');
+            audioInput.value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/audio/${audioFileNumber}.mp3`;
+            container.appendChild(titleInput);
+            container.appendChild(audioInput);
+            document.getElementById('chapters').appendChild(container);
+        }
+    </script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
