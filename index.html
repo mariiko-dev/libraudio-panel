@@ -42,6 +42,13 @@
             <div class="form-group">
                 <input type="text" class="form-control" id="genre" name="genre" placeholder="Жанры (через запятую)" required><br>
             </div>
+            <!-- Опциональные поля для серии книг -->
+            <div class="form-group">
+                <input type="text" class="form-control" id="bookseires" name="bookseires" placeholder="Цикл (необязательно)"><br>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-control" id="bookseires_id" name="bookseires_id" placeholder="Порядковый номер в цикле (необязательно)"><br>
+            </div>
             <div class="form-group">
                 <input type="text" class="form-control" id="folderName" name="folderName" placeholder="Название папки (для аудио глав)" required oninput="updateLinksBasedOnFolderName()"><br>
             </div>
@@ -49,14 +56,15 @@
                 <h4>Главы</h4>
                 <!-- Поля для глав будут добавляться здесь -->
             </div>
-            <button type="button" class="btn btn-secondary mb-3" onclick="addChapter()">Добавить главу</button><br>
+            <div class="form-group">
+                <input type="number" class="form-control" id="chapterCountInput" name="chapterCount" placeholder="Количество глав" min="1"><br>
+            </div>
+            <button type="button" class="btn btn-secondary mb-3" onclick="addChapters()">Добавить главы</button><br>
             <button type="submit" class="btn btn-primary">Добавить книгу</button>
         </form>
     </div>
 
     <script>
-        let chapterCount = 0;
-
         document.getElementById('addBookForm').onsubmit = async function(e) {
             e.preventDefault();
             const formData = {
@@ -70,6 +78,8 @@
                 rating: parseFloat(document.getElementById('rating').value),
                 summary: document.getElementById('summary').value,
                 genre: document.getElementById('genre').value.split(','),
+                bookseires: document.getElementById('bookseires').value || null,
+                bookseires_id: document.getElementById('bookseires_id').value || null,
                 chapters: Array.from(document.querySelectorAll('.chapter')).map((chapter, index) => ({
                     title: chapter.querySelector('.chapterTitle').value,
                     audioFile: chapter.querySelector('.chapterAudio').value,
@@ -98,34 +108,43 @@
         function updateLinksBasedOnFolderName() {
             const folderName = document.getElementById('folderName').value;
             if (folderName) {
-                document.getElementById('img').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}.jpg`;
-                document.getElementById('img_audio').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}_audio.jpg`;
-                document.getElementById('txt').value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/${folderName}.txt`;
+                document.getElementById('img').value = `https://s3.libraudio.com/libraudio/books/${folderName}/${folderName}.jpg`;
+                document.getElementById('img_audio').value = `https://s3.libraudio.com/libraudio/books/${folderName}/${folderName}_audio.jpg`;
+                document.getElementById('txt').value = `https://s3.libraudio.com/libraudio/books/${folderName}/${folderName}.txt`;
             }
         }
 
-        function addChapter() {
+        function addChapters() {
             const folderName = document.getElementById('folderName').value;
+            const chapterCount = parseInt(document.getElementById('chapterCountInput').value);
             if (!folderName) {
                 alert('Пожалуйста, введите название папки.');
                 return;
             }
 
-            chapterCount++;
-            const container = document.createElement('div');
-            container.classList.add('chapter', 'form-group');
-            const titleInput = document.createElement('input');
-            titleInput.type = 'text';
-            titleInput.classList.add('form-control', 'chapterTitle');
-            titleInput.value = 'Часть ' + chapterCount;
-            const audioInput = document.createElement('input');
-            audioInput.type = 'url';
-            audioInput.classList.add('form-control', 'chapterAudio');
-            let audioFileNumber = String(chapterCount - 1).padStart(2, '0');
-            audioInput.value = `https://libraudio.s3.eu-central-1.amazonaws.com/books/${folderName}/audio/${audioFileNumber}.mp3`;
-            container.appendChild(titleInput);
-            container.appendChild(audioInput);
-            document.getElementById('chapters').appendChild(container);
+            if (isNaN(chapterCount) || chapterCount < 1) {
+                alert('Введите корректное количество глав.');
+                return;
+            }
+
+            const chapterContainer = document.getElementById('chapters');
+            chapterContainer.innerHTML = ''; // Очищаем существующие главы
+            for (let i = 1; i <= chapterCount; i++) {
+                const container = document.createElement('div');
+                container.classList.add('chapter', 'form-group');
+                const titleInput = document.createElement('input');
+                titleInput.type = 'text';
+                titleInput.classList.add('form-control', 'chapterTitle');
+                titleInput.value = 'Часть ' + i;
+                const audioInput = document.createElement('input');
+                audioInput.type = 'url';
+                audioInput.classList.add('form-control', 'chapterAudio');
+                let audioFileNumber = String(i - 1).padStart(2, '0');
+                audioInput.value = `https://s3.libraudio.com/libraudio/books/${folderName}/audio/${audioFileNumber}.mp3`;
+                container.appendChild(titleInput);
+                container.appendChild(audioInput);
+                chapterContainer.appendChild(container);
+            }
         }
     </script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>

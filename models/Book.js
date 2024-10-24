@@ -10,6 +10,8 @@ const BookSchema = new mongoose.Schema({
   title: String,
   author: String,
   lister: String,
+  bookseires: String,
+  bookseires_id: String,
   img: String,
   img_audio: String,
   txt: String,
